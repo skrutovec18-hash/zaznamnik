@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tvůj Záznamník</title>
+    <style>
+        body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; background: #f0f2f5; margin: 0; }
+        #recordBtn { width: 120px; height: 120px; border-radius: 50%; border: none; background: #ff4b2b; color: white; font-size: 40px; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.2); transition: 0.3s; }
+        #recordBtn.recording { background: #333; transform: scale(1.1); }
+        p { margin-top: 20px; color: #555; }
+    </style>
+</head>
+<body>
+    <button id="recordBtn">🎤</button>
+    <p id="status">Stiskni pro nahrávání</p>
+
+    <script>
+        const recordBtn = document.getElementById('recordBtn');
+        const status = document.getElementById('status');
+        let mediaRecorder;
+        let audioChunks = [];
+        const webhookUrl = 'https://hook.eu1.make.com/fsnm6hfisg8q7cmp8rvlova8o1ve9yye';
+
+        recordBtn.onclick = async () => {
+            if (mediaRecorder && mediaRecorder.state === "recording") {
+                mediaRecorder.stop();
+                recordBtn.classList.remove('recording');
+                status.innerText = "Odesílám záznam...";
+                return;
+            }
+
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            mediaRecorder = new MediaRecorder(stream);
+            audioChunks = [];
+
+            mediaRecorder.ondataavailable = event => audioChunks.push(event.data);
+            mediaRecorder.onstop = async () => {
+                const audioBlob = new Blob(audioChunks, { type: 'audio/m4a' });
+                const formData = new FormData();
+                formData.append('file', audioBlob, 'nahravka.m4a');
+
+                try {
+                    await fetch(webhookUrl, { method: 'POST', body: formData });
+                    status.innerText = "Hotovo! Kontroluj e-mail.";
+                } catch (e) {
+                    status.innerText = "Chyba při odesílání.";
+                }
+            };
+
+            mediaRecorder.start();
+            recordBtn.classList.add('recording');
+            status.innerText = "Nahrávám... (klikni pro zastavení)";
+        };
+    </script>
+</body>
+</html>
