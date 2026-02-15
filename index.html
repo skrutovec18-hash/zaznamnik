@@ -2,19 +2,35 @@
 <html lang="cs">
 <head>
     <meta charset="UTF-8">
-    <title>Záznamník hovorů</title>
+    <title>Záznamník & Analyzátor</title>
     <style>
-        body { font-family: sans-serif; text-align: center; padding: 50px; }
-        .box { border: 2px solid #ccc; padding: 20px; display: inline-block; border-radius: 10px; }
-        input, button { margin: 10px; padding: 10px; font-size: 16px; }
-        #status { color: blue; font-weight: bold; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align: center; padding: 50px; background-color: #f4f4f9; }
+        .box { border: 2px solid #3498db; padding: 30px; display: inline-block; border-radius: 15px; background: white; box-shadow: 0 4px 6px rgba(0,0,0,0.1); width: 400px; }
+        input[type="email"], input[type="file"] { margin: 15px 0; padding: 12px; width: 80%; border-radius: 8px; border: 1px solid #ddd; }
+        button { margin: 10px; padding: 12px 25px; font-size: 16px; cursor: pointer; border-radius: 8px; border: none; transition: 0.3s; }
+        #recordBtn { background-color: #e74c3c; color: white; }
+        #recordBtn:hover { background-color: #c0392b; }
+        .upload-area { border: 2px dashed #3498db; padding: 20px; margin: 15px 0; border-radius: 10px; color: #3498db; }
+        #status { color: #2c3e50; font-weight: bold; margin-top: 20px; }
     </style>
 </head>
 <body>
     <div class="box">
-        <h2>Záznamník hovorů</h2>
-        <input type="email" id="userEmail" placeholder="Váš e-mail" required><br>
-        <button id="recordBtn">🎤 Začít nahrávat</button>
+        <h2>Analyzátor hovorů</h2>
+        <input type="email" id="userEmail" placeholder="Váš e-mail pro zaslání zápisu" required>
+        
+        <div class="upload-area">
+            <p>Možnost 1: Nahrajte soubor</p>
+            <input type="file" id="fileInput" accept="audio/*">
+        </div>
+
+        <p>— NEBO —</p>
+
+        <div class="record-area">
+            <p>Možnost 2: Namluvte záznam přímo</p>
+            <button id="recordBtn">🎤 Začít nahrávat</button>
+        </div>
+
         <p id="status">Připraveno</p>
     </div>
 
@@ -22,41 +38,66 @@
         let mediaRecorder;
         let audioChunks = [];
         const recordBtn = document.getElementById('recordBtn');
+        const fileInput = document.getElementById('fileInput');
         const status = document.getElementById('status');
+        
+        // ZDE JE TVŮJ NOVÝ SPRÁVNÝ WEBHOOK
+        const webhookUrl = 'https://hook.eu1.make.com/3u0jkgdl85btm4cjm1kepy2834kn2txw';
 
+        // --- MANIPULACE S NAHRÁVÁNÍM ---
         recordBtn.onclick = async () => {
             if (!mediaRecorder || mediaRecorder.state === 'inactive') {
-                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                mediaRecorder = new MediaRecorder(stream);
-                audioChunks = [];
-                
-                mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
-                mediaRecorder.onstop = odeslatData;
-                
-                mediaRecorder.start();
-                recordBtn.innerText = '🛑 Zastavit a odeslat';
-                status.innerText = 'Nahrávám...';
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    mediaRecorder = new MediaRecorder(stream);
+                    audioChunks = [];
+                    mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+                    mediaRecorder.onstop = () => odeslatData(new Blob(audioChunks, { type: 'audio/webm' }), 'nahravka.webm');
+                    mediaRecorder.start();
+                    recordBtn.innerText = '🛑 Zastavit a odeslat';
+                    status.innerText = 'Nahrávám váš hlas...';
+                } catch (err) {
+                    status.innerText = 'Chyba: Mikrofon nebyl povolen.';
+                }
             } else {
                 mediaRecorder.stop();
                 recordBtn.innerText = '🎤 Začít nahrávat';
-                status.innerText = 'Odesílám pošťáka...';
+                status.innerText = 'Zpracovávám nahrávku...';
             }
         };
 
-        async function odeslatData() {
-            const blob = new Blob(audioChunks, { type: 'audio/webm' });
+        // --- MANIPULACE S VLOŽENÝM SOUBOREM ---
+        fileInput.onchange = (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                status.innerText = 'Odesílám vybraný soubor...';
+                odeslatData(file, file.name);
+            }
+        };
+
+        // --- SPOLEČNÁ FUNKCE PRO ODESLÁNÍ ---
+        async function odeslatData(fileBlob, fileName) {
             const email = document.getElementById('userEmail').value;
-            
+            if (!email) {
+                alert('Prosím, vyplňte nejdříve e-mail!');
+                status.innerText = 'Chybí e-mail.';
+                return;
+            }
+
             const formData = new FormData();
-            formData.append('file', blob, 'nahravka.webm');
+            formData.append('file', fileBlob, fileName);
             formData.append('email', email);
 
-            await fetch('https://hook.eu1.make.com/3u0jkgdl85btm4cjm1kepy2834kn2txw', {
-                method: 'POST',
-                body: formData
-            });
-
-            status.innerText = 'Odesláno! Brzy vám přijde e-mail s přepisem.';
+            try {
+                const response = await fetch(webhookUrl, { method: 'POST', body: formData });
+                if (response.ok) {
+                    status.innerText = 'Úspěšně odesláno! Zkontrolujte mail.';
+                } else {
+                    status.innerText = 'Chyba při odesílání do Make.';
+                }
+            } catch (err) {
+                status.innerText = 'Chyba připojení k serveru.';
+            }
         }
     </script>
 </body>
