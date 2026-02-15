@@ -2,36 +2,187 @@
 <html lang="cs">
 <head>
     <meta charset="UTF-8">
-    <title>Záznamník & Analyzátor</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tvůj záznamník</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,300;0,400;0,600;1,300&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align: center; padding: 50px; background-color: #f4f4f9; }
-        .box { border: 2px solid #3498db; padding: 30px; display: inline-block; border-radius: 15px; background: white; box-shadow: 0 4px 6px rgba(0,0,0,0.1); width: 400px; }
-        input[type="email"], input[type="file"] { margin: 15px 0; padding: 12px; width: 80%; border-radius: 8px; border: 1px solid #ddd; }
-        button { margin: 10px; padding: 12px 25px; font-size: 16px; cursor: pointer; border-radius: 8px; border: none; transition: 0.3s; }
+        body {
+            font-family: 'Poppins', sans-serif;
+            margin: 0;
+            padding: 0;
+            /* Jemný moderní přechod */
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .warning-banner {
+            background-color: #ff4757;
+            color: white;
+            width: 100%;
+            text-align: center;
+            padding: 10px 0;
+            font-weight: bold;
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 1000;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+
+        .container {
+            background: white;
+            width: 90%;
+            max-width: 800px; /* Širší okno */
+            min-height: 70vh; /* Vyšší okno */
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-evenly; /* Rozprostření obsahu */
+        }
+
+        h1 {
+            color: #2c3e50;
+            font-size: 3.5rem; /* 2x větší než běžně */
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .subtitle {
+            font-style: italic;
+            color: #57606f;
+            font-size: 1.2rem;
+            margin-bottom: 30px;
+            font-weight: 300;
+        }
+
+        input[type="email"] {
+            padding: 15px;
+            width: 80%;
+            font-size: 1.1rem;
+            border: 2px solid #dfe4ea;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            outline: none;
+            transition: 0.3s;
+        }
+
+        input[type="email"]:focus {
+            border-color: #3498db;
+        }
+
+        .options-grid {
+            display: flex;
+            flex-direction: row;
+            justify-content: space-around;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .option-box {
+            flex: 1;
+            min-width: 280px;
+            padding: 20px;
+            border: 2px dashed #bdc3c7;
+            border-radius: 15px;
+            background-color: #f8f9fa;
+        }
+
+        button {
+            padding: 15px 30px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            border-radius: 10px;
+            border: none;
+            transition: 0.3s;
+            font-family: 'Poppins', sans-serif;
+            font-weight: 500;
+            margin-top: 15px;
+        }
+
+        /* Tlačítko nahrávání */
         #recordBtn { background-color: #e74c3c; color: white; }
-        #recordBtn:hover { background-color: #c0392b; }
-        .upload-area { border: 2px dashed #3498db; padding: 20px; margin: 15px 0; border-radius: 10px; color: #3498db; }
-        #status { color: #2c3e50; font-weight: bold; margin-top: 20px; }
+        #recordBtn:hover { background-color: #c0392b; transform: scale(1.02); }
+
+        /* Tlačítko odeslání souboru */
+        #uploadBtn { 
+            background-color: #2ecc71; 
+            color: white; 
+            display: none; /* Skryté, dokud není vybrán soubor */
+            width: 100%;
+        }
+        #uploadBtn:hover { background-color: #27ae60; transform: scale(1.02); }
+
+        /* Custom input file */
+        input[type="file"] {
+            display: none; /* Skryjeme ošklivý defaultní input */
+        }
+        
+        .custom-file-upload {
+            display: inline-block;
+            padding: 12px 24px;
+            cursor: pointer;
+            background-color: #3498db;
+            color: white;
+            border-radius: 8px;
+            transition: 0.3s;
+        }
+        .custom-file-upload:hover { background-color: #2980b9; }
+
+        #status {
+            color: #2c3e50;
+            font-weight: bold;
+            font-size: 1.1rem;
+            margin-top: 20px;
+            min-height: 1.5em;
+        }
+
+        #selectedFileName {
+            margin: 10px 0;
+            color: #7f8c8d;
+            font-size: 0.9rem;
+        }
     </style>
 </head>
 <body>
-    <div class="box">
-        <h2>Analyzátor hovorů</h2>
-        <input type="email" id="userEmail" placeholder="Váš e-mail pro zaslání zápisu" required>
-        
-        <div class="upload-area">
-            <p>Možnost 1: Nahrajte soubor</p>
-            <input type="file" id="fileInput" accept="audio/*">
+
+    <div class="warning-banner">
+        ⚠️ STRÁNKY JSOU ZATÍM NEDOSTUPNÉ, JIŽ BRZY ZAČNEME ŠETŘIT VÁŠ ČAS ⚠️
+    </div>
+
+    <div class="container">
+        <div>
+            <h1>Tvůj záznamník</h1>
+            <p class="subtitle">Zadejte email, vyberte možnost a do tří minut máte výsledek.</p>
         </div>
 
-        <p>— NEBO —</p>
+        <input type="email" id="userEmail" placeholder="Váš e-mail (např. jan@novak.cz)" required>
 
-        <div class="record-area">
-            <p>Možnost 2: Namluvte záznam přímo</p>
-            <button id="recordBtn">🎤 Začít nahrávat</button>
+        <div class="options-grid">
+            <div class="option-box">
+                <h3>📂 Vložit nahrávku</h3>
+                <label class="custom-file-upload">
+                    <input type="file" id="fileInput" accept="audio/*">
+                    Vybrat soubor z počítače
+                </label>
+                <div id="selectedFileName">Žádný soubor nevybrán</div>
+                <button id="uploadBtn">Potvrdit a odeslat</button>
+            </div>
+
+            <div class="option-box">
+                <h3>🎙️ Nahrát vzkaz</h3>
+                <p style="font-size: 0.9rem; color: #7f8c8d;">Klikněte, namluvte a odešlete.</p>
+                <button id="recordBtn">🔴 Začít nahrávat</button>
+            </div>
         </div>
 
-        <p id="status">Připraveno</p>
+        <p id="status">Připraveno k akci</p>
     </div>
 
     <script>
@@ -39,12 +190,35 @@
         let audioChunks = [];
         const recordBtn = document.getElementById('recordBtn');
         const fileInput = document.getElementById('fileInput');
+        const uploadBtn = document.getElementById('uploadBtn');
         const status = document.getElementById('status');
+        const selectedFileName = document.getElementById('selectedFileName');
         
-        // ZDE JE TVŮJ NOVÝ SPRÁVNÝ WEBHOOK
+        // ZDE JE TVŮJ WEBHOOK
         const webhookUrl = 'https://hook.eu1.make.com/3u0jkgdl85btm4cjm1kepy2834kn2txw';
 
-        // --- MANIPULACE S NAHRÁVÁNÍM ---
+        // --- 1. LOGIKA PRO SOUBOR ---
+        fileInput.onchange = (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                selectedFileName.innerText = "Vybráno: " + file.name;
+                uploadBtn.style.display = "inline-block"; // Zobrazit tlačítko pro odeslání
+                status.innerText = "Soubor připraven. Klikněte na 'Potvrdit a odeslat'.";
+            } else {
+                uploadBtn.style.display = "none";
+                selectedFileName.innerText = "Žádný soubor nevybrán";
+            }
+        };
+
+        uploadBtn.onclick = () => {
+            const file = fileInput.files[0];
+            if (file) {
+                status.innerText = 'Odesílám soubor...';
+                odeslatData(file, file.name);
+            }
+        };
+
+        // --- 2. LOGIKA PRO MIKROFON ---
         recordBtn.onclick = async () => {
             if (!mediaRecorder || mediaRecorder.state === 'inactive') {
                 try {
@@ -52,35 +226,36 @@
                     mediaRecorder = new MediaRecorder(stream);
                     audioChunks = [];
                     mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
-                    mediaRecorder.onstop = () => odeslatData(new Blob(audioChunks, { type: 'audio/webm' }), 'nahravka.webm');
+                    
+                    mediaRecorder.onstop = () => {
+                        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                        status.innerText = 'Nahrávka dokončena. Odesílám...';
+                        odeslatData(audioBlob, 'nahravka_z_mikrofonu.webm');
+                    };
+
                     mediaRecorder.start();
-                    recordBtn.innerText = '🛑 Zastavit a odeslat';
-                    status.innerText = 'Nahrávám váš hlas...';
+                    recordBtn.innerText = '⏹️ Zastavit a odeslat';
+                    recordBtn.style.backgroundColor = '#2c3e50'; // Změna barvy při nahrávání
+                    status.innerText = 'Nahrávám... (Mluvte)';
                 } catch (err) {
                     status.innerText = 'Chyba: Mikrofon nebyl povolen.';
+                    alert('Pro nahrávání musíte povolit mikrofon v prohlížeči.');
                 }
             } else {
                 mediaRecorder.stop();
-                recordBtn.innerText = '🎤 Začít nahrávat';
-                status.innerText = 'Zpracovávám nahrávku...';
+                recordBtn.innerText = '🔴 Začít nahrávat';
+                recordBtn.style.backgroundColor = '#e74c3c'; // Zpět na červenou
             }
         };
 
-        // --- MANIPULACE S VLOŽENÝM SOUBOREM ---
-        fileInput.onchange = (e) => {
-            const file = e.target.files[0];
-            if (file) {
-                status.innerText = 'Odesílám vybraný soubor...';
-                odeslatData(file, file.name);
-            }
-        };
-
-        // --- SPOLEČNÁ FUNKCE PRO ODESLÁNÍ ---
+        // --- SPOLEČNÁ FUNKCE ODESLÁNÍ ---
         async function odeslatData(fileBlob, fileName) {
             const email = document.getElementById('userEmail').value;
-            if (!email) {
-                alert('Prosím, vyplňte nejdříve e-mail!');
-                status.innerText = 'Chybí e-mail.';
+            
+            // Jednoduchá kontrola e-mailu
+            if (!email || !email.includes('@')) {
+                alert('Prosím, vyplňte platný e-mail!');
+                status.innerText = 'Chybí platný e-mail.';
                 return;
             }
 
@@ -91,12 +266,16 @@
             try {
                 const response = await fetch(webhookUrl, { method: 'POST', body: formData });
                 if (response.ok) {
-                    status.innerText = 'Úspěšně odesláno! Zkontrolujte mail.';
+                    status.innerText = '✅ Úspěšně odesláno! Zkontrolujte mail.';
+                    // Vyčistit formulář
+                    fileInput.value = "";
+                    uploadBtn.style.display = "none";
+                    selectedFileName.innerText = "Žádný soubor nevybrán";
                 } else {
-                    status.innerText = 'Chyba při odesílání do Make.';
+                    status.innerText = '❌ Chyba při odesílání do Make.';
                 }
             } catch (err) {
-                status.innerText = 'Chyba připojení k serveru.';
+                status.innerText = '❌ Chyba připojení k serveru.';
             }
         }
     </script>
